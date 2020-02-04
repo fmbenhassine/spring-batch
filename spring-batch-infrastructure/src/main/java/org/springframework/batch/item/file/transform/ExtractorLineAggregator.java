@@ -15,6 +15,8 @@
  */
 package org.springframework.batch.item.file.transform;
 
+import org.springframework.format.support.DefaultFormattingConversionService;
+import org.springframework.format.support.FormattingConversionService;
 import org.springframework.util.Assert;
 
 /**
@@ -29,6 +31,7 @@ import org.springframework.util.Assert;
 public abstract class ExtractorLineAggregator<T> implements LineAggregator<T> {
 
 	private FieldExtractor<T> fieldExtractor = new PassThroughFieldExtractor<>();
+	private FormattingConversionService formattingConversionService = new DefaultFormattingConversionService();
 
 	/**
 	 * Public setter for the field extractor responsible for splitting an input
@@ -39,6 +42,10 @@ public abstract class ExtractorLineAggregator<T> implements LineAggregator<T> {
 	 */
 	public void setFieldExtractor(FieldExtractor<T> fieldExtractor) {
 		this.fieldExtractor = fieldExtractor;
+	}
+
+	public void setFormattingConversionService(FormattingConversionService formattingConversionService) {
+		this.formattingConversionService = formattingConversionService;
 	}
 
 	/**
@@ -62,7 +69,7 @@ public abstract class ExtractorLineAggregator<T> implements LineAggregator<T> {
 				args[i] = "";
 			}
 			else {
-				args[i] = fields[i];
+				args[i] = formattingConversionService.convert(fields[i], String.class);
 			}
 		}
 

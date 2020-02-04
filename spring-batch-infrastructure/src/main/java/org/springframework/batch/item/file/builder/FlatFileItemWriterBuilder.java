@@ -32,6 +32,7 @@ import org.springframework.batch.item.file.transform.FieldExtractor;
 import org.springframework.batch.item.file.transform.FormatterLineAggregator;
 import org.springframework.batch.item.file.transform.LineAggregator;
 import org.springframework.core.io.Resource;
+import org.springframework.format.support.FormattingConversionService;
 import org.springframework.util.Assert;
 
 /**
@@ -303,6 +304,8 @@ public class FlatFileItemWriterBuilder<T> {
 
 		private List<String> names = new ArrayList<>();
 
+		private FormattingConversionService formattingConversionService;
+
 		protected FormattedBuilder(FlatFileItemWriterBuilder<T> parent) {
 			this.parent = parent;
 		}
@@ -314,6 +317,11 @@ public class FlatFileItemWriterBuilder<T> {
 		 */
 		public FormattedBuilder<T> format(String format) {
 			this.format = format;
+			return this;
+		}
+
+		public FormattedBuilder<T> formattingConversionService(FormattingConversionService formattingConversionService) {
+			this.formattingConversionService = formattingConversionService;
 			return this;
 		}
 
@@ -398,6 +406,9 @@ public class FlatFileItemWriterBuilder<T> {
 			}
 
 			formatterLineAggregator.setFieldExtractor(this.fieldExtractor);
+			if (this.formattingConversionService != null) {
+				formatterLineAggregator.setFormattingConversionService(formattingConversionService);
+			}
 			return formatterLineAggregator;
 		}
 	}
@@ -417,6 +428,8 @@ public class FlatFileItemWriterBuilder<T> {
 
 		private FieldExtractor<T> fieldExtractor;
 
+		private FormattingConversionService formattingConversionService;
+
 		protected DelimitedBuilder(FlatFileItemWriterBuilder<T> parent) {
 			this.parent = parent;
 		}
@@ -430,6 +443,11 @@ public class FlatFileItemWriterBuilder<T> {
 		 */
 		public DelimitedBuilder<T> delimiter(String delimiter) {
 			this.delimiter = delimiter;
+			return this;
+		}
+
+		public DelimitedBuilder<T> formattingConversionService(FormattingConversionService formattingConversionService) {
+			this.formattingConversionService = formattingConversionService;
 			return this;
 		}
 
@@ -480,6 +498,9 @@ public class FlatFileItemWriterBuilder<T> {
 			}
 
 			delimitedLineAggregator.setFieldExtractor(this.fieldExtractor);
+			if (this.formattingConversionService != null) {
+				delimitedLineAggregator.setFormattingConversionService(formattingConversionService);
+			}
 			return delimitedLineAggregator;
 		}
 	}
