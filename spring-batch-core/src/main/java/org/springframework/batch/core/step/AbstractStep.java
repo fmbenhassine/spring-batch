@@ -18,6 +18,7 @@ package org.springframework.batch.core.step;
 import java.time.Duration;
 import java.util.Date;
 
+import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
 import org.apache.commons.logging.Log;
@@ -192,6 +193,9 @@ public abstract class AbstractStep implements Step, InitializingBean, BeanNameAw
 		}
 		stepExecution.setStartTime(new Date());
 		stepExecution.setStatus(BatchStatus.STARTED);
+		LongTaskTimer longTaskTimer = BatchMetrics.createLongTaskTimer("step.active", "Active steps",
+				Tag.of("name", stepExecution.getStepName()));
+		LongTaskTimer.Sample longTaskTimerSample = longTaskTimer.start();
 		Timer.Sample sample = BatchMetrics.createTimerSample();
 		getJobRepository().update(stepExecution);
 
@@ -266,6 +270,7 @@ public abstract class AbstractStep implements Step, InitializingBean, BeanNameAw
 					Tag.of("name", stepExecution.getStepName()),
 					Tag.of("status", stepExecution.getExitStatus().getExitCode())
 			));
+			longTaskTimerSample.stop();
 			stepExecution.setEndTime(new Date());
 			stepExecution.setExitStatus(exitStatus);
 			Duration stepExecutionDuration = BatchMetrics.calculateDuration(stepExecution.getStartTime(), stepExecution.getEndTime());
