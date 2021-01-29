@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2013 the original author or authors.
+ * Copyright 2006-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.springframework.batch.item.ExecutionContext;
 import org.springframework.util.Assert;
@@ -33,6 +34,7 @@ import org.springframework.util.Assert;
  *
  * @author Lucas Ward
  * @author Dave Syer
+ * @author Mahmoud Ben Hassine
  *
  */
 @SuppressWarnings("serial")
@@ -44,19 +46,19 @@ public class StepExecution extends Entity {
 
 	private volatile BatchStatus status = BatchStatus.STARTING;
 
-	private volatile int readCount = 0;
+	private volatile AtomicInteger readCount = new AtomicInteger(0);
 
-	private volatile int writeCount = 0;
+	private volatile AtomicInteger writeCount = new AtomicInteger(0);
 
-	private volatile int commitCount = 0;
+	private volatile AtomicInteger commitCount = new AtomicInteger(0);
 
-	private volatile int rollbackCount = 0;
+	private volatile AtomicInteger rollbackCount = new AtomicInteger(0);
 
-	private volatile int readSkipCount = 0;
+	private volatile AtomicInteger readSkipCount = new AtomicInteger(0);
 
-	private volatile int processSkipCount = 0;
+	private volatile AtomicInteger processSkipCount = new AtomicInteger(0);
 
-	private volatile int writeSkipCount = 0;
+	private volatile AtomicInteger writeSkipCount = new AtomicInteger(0);
 
 	private volatile Date startTime = new Date(System.currentTimeMillis());
 
@@ -70,7 +72,7 @@ public class StepExecution extends Entity {
 
 	private volatile boolean terminateOnly;
 
-	private volatile int filterCount;
+	private volatile AtomicInteger filterCount = new AtomicInteger(0);
 
 	private transient volatile List<Throwable> failureExceptions = new CopyOnWriteArrayList<>();
 
@@ -141,7 +143,7 @@ public class StepExecution extends Entity {
 	 * @return the current number of commits
 	 */
 	public int getCommitCount() {
-		return commitCount;
+		return commitCount.get();
 	}
 
 	/**
@@ -150,7 +152,7 @@ public class StepExecution extends Entity {
 	 * @param commitCount the current number of commits
 	 */
 	public void setCommitCount(int commitCount) {
-		this.commitCount = commitCount;
+		this.commitCount.set(commitCount);
 	}
 
 	/**
@@ -177,7 +179,7 @@ public class StepExecution extends Entity {
 	 * @return the current number of items read for this execution
 	 */
 	public int getReadCount() {
-		return readCount;
+		return readCount.get();
 	}
 
 	/**
@@ -186,7 +188,7 @@ public class StepExecution extends Entity {
 	 * @param readCount the current number of read items for this execution
 	 */
 	public void setReadCount(int readCount) {
-		this.readCount = readCount;
+		this.readCount.set(readCount);
 	}
 
 	/**
@@ -195,7 +197,7 @@ public class StepExecution extends Entity {
 	 * @return the current number of items written for this execution
 	 */
 	public int getWriteCount() {
-		return writeCount;
+		return writeCount.get();
 	}
 
 	/**
@@ -204,7 +206,7 @@ public class StepExecution extends Entity {
 	 * @param writeCount the current number of written items for this execution
 	 */
 	public void setWriteCount(int writeCount) {
-		this.writeCount = writeCount;
+		this.writeCount.set(writeCount);
 	}
 
 	/**
@@ -213,7 +215,7 @@ public class StepExecution extends Entity {
 	 * @return the current number of rollbacks for this execution
 	 */
 	public int getRollbackCount() {
-		return rollbackCount;
+		return rollbackCount.get();
 	}
 
 	/**
@@ -222,7 +224,7 @@ public class StepExecution extends Entity {
 	 * @return the current number of items filtered out of this execution
 	 */
 	public int getFilterCount() {
-		return filterCount;
+		return filterCount.get();
 	}
 
 	/**
@@ -231,7 +233,7 @@ public class StepExecution extends Entity {
 	 * set
 	 */
 	public void setFilterCount(int filterCount) {
-		this.filterCount = filterCount;
+		this.filterCount.set(filterCount);
 	}
 
 	/**
@@ -239,7 +241,7 @@ public class StepExecution extends Entity {
 	 * @param rollbackCount int the number of rollbacks.
 	 */
 	public void setRollbackCount(int rollbackCount) {
-		this.rollbackCount = rollbackCount;
+		this.rollbackCount.set(rollbackCount);
 	}
 
 	/**
@@ -349,12 +351,13 @@ public class StepExecution extends Entity {
 	 * @param contribution {@link StepContribution} instance used to update the StepExecution state.
 	 */
 	public synchronized void apply(StepContribution contribution) {
-		readSkipCount += contribution.getReadSkipCount();
-		writeSkipCount += contribution.getWriteSkipCount();
-		processSkipCount += contribution.getProcessSkipCount();
-		filterCount += contribution.getFilterCount();
-		readCount += contribution.getReadCount();
-		writeCount += contribution.getWriteCount();
+		System.out.println(Thread.currentThread().getName() + " StepExecution.apply" + contribution);
+		readSkipCount.addAndGet(contribution.getReadSkipCount());
+		writeSkipCount.addAndGet(contribution.getWriteSkipCount());
+		processSkipCount.addAndGet(contribution.getProcessSkipCount());
+		filterCount.addAndGet(contribution.getFilterCount());
+		readCount.addAndGet(contribution.getReadCount());
+		writeCount.addAndGet(contribution.getWriteCount());
 		exitStatus = exitStatus.and(contribution.getExitStatus());
 	}
 
@@ -362,7 +365,7 @@ public class StepExecution extends Entity {
 	 * On unsuccessful execution after a chunk has rolled back.
 	 */
 	public synchronized void incrementRollbackCount() {
-		rollbackCount++;
+		rollbackCount.incrementAndGet();
 	}
 
 	/**
@@ -383,15 +386,15 @@ public class StepExecution extends Entity {
 	/**
 	 * @return the total number of items skipped.
 	 */
-	public int getSkipCount() {
-		return readSkipCount + processSkipCount + writeSkipCount;
+	public synchronized int getSkipCount() {
+		return readSkipCount.get() + processSkipCount.get() + writeSkipCount.get();
 	}
 
 	/**
 	 * Increment the number of commits
 	 */
-	public void incrementCommitCount() {
-		commitCount++;
+	public synchronized void incrementCommitCount() {
+		commitCount.incrementAndGet();
 	}
 
 	/**
@@ -411,14 +414,14 @@ public class StepExecution extends Entity {
 	 * @return the number of records skipped on read
 	 */
 	public int getReadSkipCount() {
-		return readSkipCount;
+		return readSkipCount.get();
 	}
 
 	/**
 	 * @return the number of records skipped on write
 	 */
 	public int getWriteSkipCount() {
-		return writeSkipCount;
+		return writeSkipCount.get();
 	}
 
 	/**
@@ -427,7 +430,7 @@ public class StepExecution extends Entity {
 	 * @param readSkipCount int containing read skip count to be used for the step execution.
 	 */
 	public void setReadSkipCount(int readSkipCount) {
-		this.readSkipCount = readSkipCount;
+		this.readSkipCount.set(readSkipCount);
 	}
 
 	/**
@@ -436,14 +439,15 @@ public class StepExecution extends Entity {
 	 * @param writeSkipCount int containing write skip count to be used for the step execution.
 	 */
 	public void setWriteSkipCount(int writeSkipCount) {
-		this.writeSkipCount = writeSkipCount;
+		System.out.println(Thread.currentThread().getName() + " set write skip count " + writeSkipCount);
+		this.writeSkipCount.set(writeSkipCount);
 	}
 
 	/**
 	 * @return the number of records skipped during processing
 	 */
 	public int getProcessSkipCount() {
-		return processSkipCount;
+		return processSkipCount.get();
 	}
 
 	/**
@@ -452,7 +456,7 @@ public class StepExecution extends Entity {
 	 * @param processSkipCount int containing process skip count to be used for the step execution.
 	 */
 	public void setProcessSkipCount(int processSkipCount) {
-		this.processSkipCount = processSkipCount;
+		this.processSkipCount.set(processSkipCount);
 	}
 
 	/**
@@ -537,8 +541,8 @@ public class StepExecution extends Entity {
 				+ String.format(
 						", name=%s, status=%s, exitStatus=%s, readCount=%d, filterCount=%d, writeCount=%d readSkipCount=%d, writeSkipCount=%d"
 								+ ", processSkipCount=%d, commitCount=%d, rollbackCount=%d", stepName, status,
-								exitStatus.getExitCode(), readCount, filterCount, writeCount, readSkipCount, writeSkipCount,
-								processSkipCount, commitCount, rollbackCount);
+								exitStatus.getExitCode(), readCount.get(), filterCount.get(), writeCount.get(), readSkipCount.get(), writeSkipCount.get(),
+								processSkipCount.get(), commitCount.get(), rollbackCount.get());
 	}
 
 }
