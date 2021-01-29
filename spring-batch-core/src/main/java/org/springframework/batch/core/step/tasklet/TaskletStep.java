@@ -50,7 +50,6 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.Assert;
 
-import java.util.concurrent.Semaphore;
 
 /**
  * Simple implementation of executing the step as a call to a {@link Tasklet},
@@ -250,14 +249,10 @@ public class TaskletStep extends AbstractStep {
 		stream.update(stepExecution.getExecutionContext());
 		getJobRepository().updateExecutionContext(stepExecution);
 
-		// Shared semaphore per step execution, so other step executions can run
-		// in parallel without needing the lock
-		final Semaphore semaphore = createSemaphore();
-
 		stepOperations.iterate(new StepContextRepeatCallback(stepExecution) {
 
 			@Override
-			public RepeatStatus doInChunkContext(RepeatContext repeatContext, ChunkContext chunkContext)
+			public synchronized RepeatStatus doInChunkContext(RepeatContext repeatContext, ChunkContext chunkContext)
 					throws Exception {
 
 				StepExecution stepExecution = chunkContext.getStepContext().getStepExecution();
@@ -269,7 +264,7 @@ public class TaskletStep extends AbstractStep {
 				RepeatStatus result;
 				try {
 					result = new TransactionTemplate(transactionManager, transactionAttribute)
-					.execute(new ChunkTransactionCallback(chunkContext, semaphore));
+					.execute(new ChunkTransactionCallback(chunkContext));
 				}
 				catch (UncheckedTransactionException e) {
 					// Allow checked exceptions to be thrown inside callback
@@ -288,16 +283,6 @@ public class TaskletStep extends AbstractStep {
 
 		});
 
-	}
-
-	/**
-	 * Extension point mainly for test purposes so that the behaviour of the
-	 * lock can be manipulated to simulate various pathologies.
-	 *
-	 * @return a semaphore for locking access to the JobRepository
-	 */
-	protected Semaphore createSemaphore() {
-		return new Semaphore(1);
 	}
 
 	@Override
@@ -339,48 +324,32 @@ public class TaskletStep extends AbstractStep {
 
 		private StepExecution oldVersion;
 
-		private boolean locked = false;
-
-		private final Semaphore semaphore;
-
-		public ChunkTransactionCallback(ChunkContext chunkContext, Semaphore semaphore) {
+		public ChunkTransactionCallback(ChunkContext chunkContext) {
 			this.chunkContext = chunkContext;
 			this.stepExecution = chunkContext.getStepContext().getStepExecution();
-			this.semaphore = semaphore;
 		}
 
 		@Override
 		public void afterCompletion(int status) {
-			try {
-				if (status != TransactionSynchronization.STATUS_COMMITTED) {
-					if (stepExecutionUpdated) {
-						// Wah! the commit failed. We need to rescue the step
-						// execution data.
-						logger.info("Commit failed while step execution data was already updated. "
-								+ "Reverting to old version.");
-						copy(oldVersion, stepExecution);
-						if (status == TransactionSynchronization.STATUS_ROLLED_BACK) {
-							rollback(stepExecution);
-						}
+			if (status != TransactionSynchronization.STATUS_COMMITTED) {
+				if (stepExecutionUpdated) {
+					// Wah! the commit failed. We need to rescue the step
+					// execution data.
+					logger.info("Commit failed while step execution data was already updated. "
+							+ "Reverting to old version.");
+					copy(oldVersion, stepExecution);
+					if (status == TransactionSynchronization.STATUS_ROLLED_BACK) {
+						rollback(stepExecution);
 					}
-					chunkListener.afterChunkError(chunkContext);
 				}
-
-				if (status == TransactionSynchronization.STATUS_UNKNOWN) {
-					logger.error("Rolling back with transaction in unknown state");
-					rollback(stepExecution);
-					stepExecution.upgradeStatus(BatchStatus.UNKNOWN);
-					stepExecution.setTerminateOnly();
-				}
+				chunkListener.afterChunkError(chunkContext);
 			}
-			finally {
-				// Only release the lock if we acquired it, and release as late
-				// as possible
-				if (locked) {
-					semaphore.release();
-				}
 
-				locked = false;
+			if (status == TransactionSynchronization.STATUS_UNKNOWN) {
+				logger.error("Rolling back with transaction in unknown state");
+				rollback(stepExecution);
+				stepExecution.upgradeStatus(BatchStatus.UNKNOWN);
+				stepExecution.setTerminateOnly();
 			}
 		}
 
@@ -416,22 +385,6 @@ public class TaskletStep extends AbstractStep {
 					}
 				}
 				finally {
-
-					// If the step operations are asynchronous then we need
-					// to synchronize changes to the step execution (at a
-					// minimum). Take the lock *before* changing the step
-					// execution.
-					try {
-						semaphore.acquire();
-						locked = true;
-					}
-					catch (InterruptedException e) {
-						logger.error("Thread interrupted while locking for repository update");
-						stepExecution.setStatus(BatchStatus.STOPPED);
-						stepExecution.setTerminateOnly();
-						Thread.currentThread().interrupt();
-					}
-
 					// Apply the contribution to the step
 					// even if unsuccessful
 					if (logger.isDebugEnabled()) {
