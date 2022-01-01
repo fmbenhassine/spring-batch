@@ -279,7 +279,9 @@ Configuration. Spring IDE produces the following diagram:
 
 This corresponds exactly with the `footballJob.xml` job
 configuration file which can be found in the jobs folder under
-`src/main/resources`. When you drill down into the football job
+`src/main/resources`. You can also find the equivalent Java
+configuration in the `org.springframework.batch.sample.jobs.FootballJob`
+class. When you drill down into the football job
 you will see that the configuration has a list of steps:
 
     <property name="steps">
@@ -488,12 +490,21 @@ database to open a cursor, and each call to `itemReader.read()`
 will move the cursor to the next row, using the provided
 `RowMapper` to return the correct object. As with the previous
 two steps, each record returned by the provider will be written out
-to the database in the PLAYER_SUMMARY table. Finally to run this
-sample application you can execute the JUnit test
+to the database in the PLAYER_SUMMARY table.
+
+Finally to run this sample application you can execute the JUnit test
 `FootballJobFunctionalTests`, and you'll see an output showing
-each of the records as they are processed. Please keep in mind that
-AoP is used to wrap the `ItemWriter` and output each record as it
-is processed to the logger, which may impact performance.
+each of the records as they are processed. You can also run the sample
+from the command line as following:
+
+```
+$>cd spring-batch-samples
+$>../mvnw -Dtest=FootballJobFunctionalTests#testLaunchJobWithXmlConfig test
+$>../mvnw -Dtest=FootballJobFunctionalTests#testLaunchJobWithJavaConfig test
+```
+
+Please keep in mind that AoP is used to wrap the `ItemWriter` and output
+each record as it is processed to the logger, which may impact performance.
 
 ### Header Footer Sample
 

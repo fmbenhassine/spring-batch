@@ -15,14 +15,24 @@
  */
 package org.springframework.batch.sample;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import javax.sql.DataSource;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import org.springframework.batch.core.ExitStatus;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobParameters;
+import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.batch.sample.jobs.FootballJob;
 import org.springframework.batch.test.JobLauncherTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -41,11 +51,28 @@ public class FootballJobFunctionalTests {
 	}
 
 	@Test
-	public void testLaunchJob() throws Exception {
+	public void testLaunchJobWithXmlConfig() throws Exception {
 		JdbcTestUtils.deleteFromTables(jdbcTemplate, "PLAYERS", "GAMES", "PLAYER_SUMMARY");
 
 		jobLauncherTestUtils.launchJob();
 
+		int count = JdbcTestUtils.countRowsInTable(jdbcTemplate, "PLAYER_SUMMARY");
+		assertTrue(count > 0);
+	}
+
+	@Test
+	public void testLaunchJobWithJavaConfig() throws Exception {
+		// given
+		ApplicationContext context = new AnnotationConfigApplicationContext(FootballJob.class);
+		JobLauncher jobLauncher = context.getBean(JobLauncher.class);
+		Job job = context.getBean(Job.class);
+		JdbcTemplate jdbcTemplate = new JdbcTemplate(context.getBean(DataSource.class));
+
+		// when
+		JobExecution jobExecution = jobLauncher.run(job, new JobParameters());
+
+		// then
+		assertEquals(ExitStatus.COMPLETED, jobExecution.getExitStatus());
 		int count = JdbcTestUtils.countRowsInTable(jdbcTemplate, "PLAYER_SUMMARY");
 		assertTrue(count > 0);
 	}
