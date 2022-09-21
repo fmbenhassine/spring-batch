@@ -49,6 +49,11 @@ public abstract class StepBuilderHelper<B extends StepBuilderHelper<B>> {
 
 	protected final CommonStepProperties properties;
 
+
+	public StepBuilderHelper() {
+		this.properties = new CommonStepProperties();
+	}
+
 	public StepBuilderHelper(String name) {
 		this.properties = new CommonStepProperties();
 		properties.name = name;
@@ -61,6 +66,16 @@ public abstract class StepBuilderHelper<B extends StepBuilderHelper<B>> {
 	 */
 	protected StepBuilderHelper(StepBuilderHelper<?> parent) {
 		this.properties = new CommonStepProperties(parent.properties);
+	}
+
+	/**
+	 * Set the step name.
+	 * @param stepName the name of the step
+	 * @return this for fluent chaining
+	 */
+	public B name(String stepName) {
+		this.properties.setName(stepName);
+		return self();
 	}
 
 	public B repository(JobRepository jobRepository) {

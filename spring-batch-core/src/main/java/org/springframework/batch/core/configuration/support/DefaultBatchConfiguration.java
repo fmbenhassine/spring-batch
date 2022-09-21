@@ -28,6 +28,7 @@ import org.springframework.batch.core.configuration.BatchConfigurationException;
 import org.springframework.batch.core.configuration.JobRegistry;
 import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.explore.support.JobExplorerFactoryBean;
+import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.launch.support.TaskExecutorJobLauncher;
 import org.springframework.batch.core.repository.ExecutionContextSerializer;
@@ -38,6 +39,7 @@ import org.springframework.batch.core.repository.dao.JdbcExecutionContextDao;
 import org.springframework.batch.core.repository.dao.JdbcJobExecutionDao;
 import org.springframework.batch.core.repository.dao.JdbcStepExecutionDao;
 import org.springframework.batch.core.repository.support.JobRepositoryFactoryBean;
+import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.database.support.DataFieldMaxValueIncrementerFactory;
 import org.springframework.batch.item.database.support.DefaultDataFieldMaxValueIncrementerFactory;
 import org.springframework.batch.support.DatabaseType;
@@ -48,6 +50,7 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Scope;
 import org.springframework.core.task.SyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.jdbc.core.JdbcOperations;
@@ -67,12 +70,14 @@ import org.springframework.transaction.annotation.Isolation;
  * application context:
  *
  * <ul>
- * <li>a {@link JobRepository} named "jobRepository"</li>
- * <li>a {@link JobExplorer} named "jobExplorer"</li>
- * <li>a {@link JobLauncher} named "jobLauncher"</li>
- * <li>a {@link JobRegistry} named "jobRegistry"</li>
- * <li>a {@link org.springframework.batch.core.scope.StepScope} named "stepScope"</li>
- * <li>a {@link org.springframework.batch.core.scope.JobScope} named "jobScope"</li>
+ * <li>a singleton bean of type {@link JobRepository} named "jobRepository"</li>
+ * <li>a singleton bean of type {@link JobExplorer} named "jobExplorer"</li>
+ * <li>a singleton bean of type {@link JobLauncher} named "jobLauncher"</li>
+ * <li>a singleton bean of type {@link JobRegistry} named "jobRegistry"</li>
+ * <li>a singleton bean of type {@link org.springframework.batch.core.scope.StepScope} named "stepScope"</li>
+ * <li>a singleton bean of type {@link org.springframework.batch.core.scope.JobScope} named "jobScope"</li>
+ * <li>a prototype bean of type {@link JobBuilder} named "jobBuilder"</li>
+ * <li>a prototype bean of type {@link StepBuilder} named "stepBuilder"</li>
  * </ul>
  *
  * Customization is possible by extending the class and overriding getters.
@@ -175,6 +180,18 @@ public class DefaultBatchConfiguration implements ApplicationContextAware {
 	@Bean
 	public JobRegistry jobRegistry() throws Exception {
 		return this.jobRegistry; // FIXME returning a new instance here does not work
+	}
+
+	@Bean
+	@Scope("prototype")
+	public JobBuilder jobBuilder() {
+		return new JobBuilder("job", jobRepository());
+	}
+
+	@Bean
+	@Scope("prototype")
+	public StepBuilder stepBuilder() {
+		return new StepBuilder("step", jobRepository());
 	}
 
 	/*

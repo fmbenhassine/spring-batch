@@ -25,14 +25,32 @@ import org.mockito.Mockito;
 
 import org.springframework.aop.Advisor;
 import org.springframework.aop.framework.Advised;
+import org.springframework.batch.core.ExitStatus;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobParameters;
+import org.springframework.batch.core.JobParametersInvalidException;
+import org.springframework.batch.core.Step;
+import org.springframework.batch.core.StepContribution;
+import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.configuration.JobRegistry;
 import org.springframework.batch.core.explore.JobExplorer;
+import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.batch.core.repository.JobExecutionAlreadyRunningException;
+import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException;
 import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.core.repository.JobRestartException;
 import org.springframework.batch.core.repository.dao.JdbcExecutionContextDao;
 import org.springframework.batch.core.repository.dao.JdbcJobExecutionDao;
 import org.springframework.batch.core.repository.dao.JdbcJobInstanceDao;
 import org.springframework.batch.core.repository.dao.JdbcStepExecutionDao;
+import org.springframework.batch.core.scope.context.ChunkContext;
+import org.springframework.batch.core.step.AbstractStep;
+import org.springframework.batch.core.step.builder.StepBuilder;
+import org.springframework.batch.core.step.tasklet.Tasklet;
+import org.springframework.batch.core.step.tasklet.TaskletStep;
+import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -126,7 +144,7 @@ class BatchRegistrarTests {
 
 	@Test
 	@DisplayName("When custom bean names are provided, then corresponding beans should be used to configure infrastructure beans")
-	void testConfigurationWithCustonBeanNames() {
+	void testConfigurationWithCustomBeanNames() {
 		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(
 				JobConfigurationWithCustomBeanNames.class);
 
@@ -157,6 +175,20 @@ class BatchRegistrarTests {
 
 		PlatformTransactionManager transactionManager = getTransactionManagerSetOnJobRepository(jobRepository);
 		Assertions.assertEquals(context.getBean(JdbcTransactionManager.class), transactionManager);
+	}
+
+	@Test
+	void testTypicalUsage() throws Exception {
+		// given
+		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(JobConfiguration.class);
+		Job job = context.getBean(Job.class);
+		JobLauncher jobLauncher = context.getBean(JobLauncher.class);
+
+		// when
+		JobExecution jobExecution = jobLauncher.run(job, new JobParameters());
+
+		// then
+		Assertions.assertEquals(ExitStatus.COMPLETED, jobExecution.getExitStatus());
 	}
 
 	@Configuration
@@ -223,6 +255,18 @@ class BatchRegistrarTests {
 		@Bean
 		public JdbcTransactionManager transactionManager(DataSource dataSource) {
 			return new JdbcTransactionManager(dataSource);
+		}
+
+		@Bean
+		public Step step(StepBuilder stepBuilder, PlatformTransactionManager transactionManager) {
+			Tasklet tasklet = (contribution, chunkContext) -> {return RepeatStatus.FINISHED;};
+			return stepBuilder.name("myStep").tasklet(tasklet, transactionManager).build();
+		}
+		@Bean
+		public Job job(JobBuilder jobBuilder, Step step) {
+			return jobBuilder.name("myJob")
+					.start(step)
+					.build();
 		}
 
 	}

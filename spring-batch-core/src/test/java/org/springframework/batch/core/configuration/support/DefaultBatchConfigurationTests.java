@@ -107,17 +107,17 @@ class DefaultBatchConfigurationTests {
 	static class MyJobConfiguration extends DefaultBatchConfiguration {
 
 		@Bean
-		public Step myStep(JobRepository jobRepository, PlatformTransactionManager transactionManager) {
+		public Step myStep(StepBuilder stepBuilder, PlatformTransactionManager transactionManager) {
 			Tasklet myTasklet = (contribution, chunkContext) -> {
 				System.out.println("Hello world");
 				return RepeatStatus.FINISHED;
 			};
-			return new StepBuilder("myStep", jobRepository).tasklet(myTasklet, transactionManager).build();
+			return stepBuilder.name("myStep").tasklet(myTasklet, transactionManager).build();
 		}
 
 		@Bean
-		public Job job(JobRepository jobRepository, Step myStep) {
-			return new JobBuilder("job", jobRepository).start(myStep).build();
+		public Job job(JobBuilder jobBuilder, Step myStep) {
+			return jobBuilder.name("job").start(myStep).build();
 		}
 
 		@Bean

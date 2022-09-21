@@ -24,12 +24,16 @@ import org.springframework.batch.core.configuration.support.AutomaticJobRegistra
 import org.springframework.batch.core.configuration.support.DefaultJobLoader;
 import org.springframework.batch.core.configuration.support.MapJobRegistry;
 import org.springframework.batch.core.explore.support.JobExplorerFactoryBean;
+import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.launch.support.TaskExecutorJobLauncher;
 import org.springframework.batch.core.repository.support.JobRepositoryFactoryBean;
+import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.context.annotation.ImportBeanDefinitionRegistrar;
+import org.springframework.context.annotation.Scope;
+import org.springframework.context.support.BeanDefinitionDsl;
 import org.springframework.core.log.LogMessage;
 import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.util.StopWatch;
@@ -61,6 +65,8 @@ class BatchRegistrar implements ImportBeanDefinitionRegistrar {
 		registerJobLauncher(registry, batchAnnotation, importingClassName);
 		registerJobRegistry(registry);
 		registerAutomaticJobRegistrar(registry, batchAnnotation);
+		registerJobBuilder(registry);
+		registerStepBuilder(registry);
 		watch.stop();
 		LOGGER.info(LogMessage.format("Finished Spring Batch infrastrucutre beans configuration in %s ms.",
 				watch.getLastTaskTimeMillis()));
@@ -209,6 +215,22 @@ class BatchRegistrar implements ImportBeanDefinitionRegistrar {
 				.genericBeanDefinition(AutomaticJobRegistrar.class).addPropertyReference("jobLoader", "jobLoader")
 				.getBeanDefinition();
 		registry.registerBeanDefinition("jobRegistrar", jobRegistrarBeanDefinition);
+	}
+
+	private void registerJobBuilder(BeanDefinitionRegistry registry) {
+		BeanDefinition jobBuilderBeanDefinition = BeanDefinitionBuilder.genericBeanDefinition(JobBuilder.class)
+				.addPropertyReference("jobRepository", "jobRepository")
+				.setScope(BeanDefinitionDsl.Scope.PROTOTYPE.name())
+				.getBeanDefinition();
+		registry.registerBeanDefinition("jobBuilder", jobBuilderBeanDefinition);
+	}
+
+	private void registerStepBuilder(BeanDefinitionRegistry registry) {
+		BeanDefinition stepBuilderBeanDefinition = BeanDefinitionBuilder.genericBeanDefinition(StepBuilder.class)
+				.addPropertyReference("jobRepository", "jobRepository")
+				.setScope(BeanDefinitionDsl.Scope.PROTOTYPE.name())
+				.getBeanDefinition();
+		registry.registerBeanDefinition("stepBuilder", stepBuilderBeanDefinition);
 	}
 
 }

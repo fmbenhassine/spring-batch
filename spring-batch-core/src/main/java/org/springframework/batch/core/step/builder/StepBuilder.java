@@ -34,6 +34,14 @@ import org.springframework.transaction.PlatformTransactionManager;
  */
 public class StepBuilder extends StepBuilderHelper<StepBuilder> {
 
+
+	/**
+	 * Create a step builder with default attributes.
+	 */
+	public StepBuilder() {
+		super();
+	}
+
 	/**
 	 * Initialize a step builder for a step with the given name.
 	 * @param name the name of the step

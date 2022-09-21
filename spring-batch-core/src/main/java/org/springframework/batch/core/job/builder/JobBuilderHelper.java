@@ -34,6 +34,8 @@ import org.springframework.batch.core.job.AbstractJob;
 import org.springframework.batch.core.listener.JobListenerFactoryBean;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.support.ReflectionUtils;
+import org.springframework.lang.NonNull;
+import org.springframework.util.Assert;
 
 /**
  * A base class and utility for other job builders providing access to common properties
@@ -61,6 +63,18 @@ public abstract class JobBuilderHelper<B extends JobBuilderHelper<B>> {
 	 */
 	protected JobBuilderHelper(JobBuilderHelper<?> parent) {
 		this.properties = new CommonJobProperties(parent.properties);
+	}
+
+	/**
+	 * Set the job name.
+	 * @param jobName the name of the job
+	 * @return this to enable fluent chaining
+	 */
+	public B name(@NonNull String jobName) {
+		Assert.notNull(jobName, "jobName must not be null");
+		this.properties.setName(jobName);
+		B result = (B) this;
+		return result;
 	}
 
 	/**
