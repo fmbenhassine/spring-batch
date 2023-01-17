@@ -23,11 +23,14 @@ import java.util.List;
 
 import javax.sql.DataSource;
 
+import io.micrometer.core.instrument.Measurement;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.observation.DefaultMeterObservationHandler;
 import io.micrometer.observation.ObservationRegistry;
 import org.junit.jupiter.api.Test;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.junit.Assert;
 
 import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.Job;
@@ -134,6 +137,9 @@ class BatchMetricsTests {
 	@Test
 	void testBatchMetrics() throws Exception {
 		// given
+		Metrics.globalRegistry.add(new SimpleMeterRegistry());
+		// https://stackoverflow.com/questions/55207793/why-does-micrometer-timer-returns-zero
+		// https://stackoverflow.com/questions/64869472/spring-batch-and-boot-micrometer/64872201#64872201
 		ApplicationContext context = new AnnotationConfigApplicationContext(MyJobConfiguration.class);
 		JobLauncher jobLauncher = context.getBean(JobLauncher.class);
 		Job job = context.getBean(Job.class);
@@ -214,6 +220,14 @@ class BatchMetricsTests {
 				.tag("spring.batch.chunk.write.job.name", "job").tag("spring.batch.chunk.write.step.name", "step3")
 				.tag("spring.batch.chunk.write.status", "SUCCESS").timer(),
 				"There should be a meter of type TIMER named spring.batch.chunk.write registered in the global registry");
+
+		// meter values should not be zero
+		for (Meter meter : meters) {
+			Iterable<Measurement> measurements = meter.measure();
+			for (Measurement measurement : measurements) {
+				Assert.assertTrue(measurement.getValue() > 0.0);
+			}
+		}
 	}
 
 	@Configuration
