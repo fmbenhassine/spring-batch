@@ -14,8 +14,8 @@ public class MongoExecutionContextDao implements ExecutionContextDao {
 
     private MongoOperations mongoOperations;
 
-    public MongoExecutionContextDao(MongoClient mongoClient, String databaseName) {
-        this.mongoOperations = new MongoTemplate(mongoClient, databaseName);
+    public MongoExecutionContextDao(MongoOperations mongoOperations) {
+        this.mongoOperations = mongoOperations;
     }
 
     @Override

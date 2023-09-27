@@ -14,8 +14,8 @@ public class MongoStepExecutionDao implements StepExecutionDao {
 
     private MongoOperations mongoOperations;
 
-    public MongoStepExecutionDao(MongoClient mongoClient, String databaseName) {
-        this.mongoOperations = new MongoTemplate(mongoClient, databaseName);
+    public MongoStepExecutionDao(MongoOperations mongoOperations) {
+        this.mongoOperations = mongoOperations;
     }
 
     @Override
@@ -49,7 +49,7 @@ public class MongoStepExecutionDao implements StepExecutionDao {
     }
 
     @Override
-    public int countStepExecutions(JobInstance jobInstance, String stepName) {
+    public long countStepExecutions(JobInstance jobInstance, String stepName) {
         return 0;
     }
 }

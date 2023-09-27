@@ -14,8 +14,8 @@ public class MongoJobExecutionDao implements JobExecutionDao {
 
     private MongoOperations mongoOperations;
 
-    public MongoJobExecutionDao(MongoClient mongoClient, String databaseName) {
-        this.mongoOperations = new MongoTemplate(mongoClient, databaseName);
+    public MongoJobExecutionDao(MongoOperations mongoOperations) {
+        this.mongoOperations = mongoOperations;
     }
 
     @Override
