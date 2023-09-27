@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 the original author or authors.
+ * Copyright 2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 package org.springframework.batch.core.test.repository;
 
 import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClientFactory;
+import com.mongodb.client.MongoClients;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -44,6 +44,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.MongoDatabaseFactory;
 import org.springframework.data.mongodb.MongoTransactionManager;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.SimpleMongoClientDatabaseFactory;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -56,7 +57,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 public class MongoDBJobRepositoryIntegrationTests {
 
 	// TODO find the best way to externalize and manage image versions
-	private static final DockerImageName MONGODB_IMAGE = DockerImageName.parse("mongo:5.0.2");
+	private static final DockerImageName MONGODB_IMAGE = DockerImageName.parse("mongo:5.0.21");
 
 	@ClassRule
 	public static MongoDBContainer mongodb = new MongoDBContainer(MONGODB_IMAGE);
@@ -65,10 +66,18 @@ public class MongoDBJobRepositoryIntegrationTests {
 	private JobLauncher jobLauncher;
 	@Autowired
 	private Job job;
+
+	@Autowired
+	private MongoTemplate mongoTemplate;
 	
 	@Before
 	public void setUp() {
-		// execute script to create meta-data collections
+		mongoTemplate.createCollection("BATCH_JOB_INSTANCE");
+		mongoTemplate.createCollection("BATCH_JOB_EXECUTION");
+		mongoTemplate.createCollection("BATCH_JOB_EXECUTION_CONTEXT");
+		mongoTemplate.createCollection("BATCH_JOB_EXECUTION_PARAMS");
+		mongoTemplate.createCollection("BATCH_STEP_EXECUTION");
+		mongoTemplate.createCollection("BATCH_STEP_EXECUTION_CONTEXT");
 	}
 
 	@Test
@@ -90,20 +99,18 @@ public class MongoDBJobRepositoryIntegrationTests {
 		private static final String DATABASE_NAME = "test";
 
 		@Bean
-		public JobRepository jobRepository(MongoClient mongoClient, MongoTransactionManager transactionManager) throws Exception {
+		public JobRepository jobRepository(MongoTemplate mongoTemplate, MongoTransactionManager transactionManager) throws Exception {
 			MongoJobRepositoryFactoryBean jobRepositoryFactoryBean = new MongoJobRepositoryFactoryBean();
-			jobRepositoryFactoryBean.setMongoClient(mongoClient);
-			jobRepositoryFactoryBean.setDatabaseName(DATABASE_NAME);
+			jobRepositoryFactoryBean.setMongoOperations(mongoTemplate);
 			jobRepositoryFactoryBean.setTransactionManager(transactionManager);
 			jobRepositoryFactoryBean.afterPropertiesSet();
 			return jobRepositoryFactoryBean.getObject();
 		}
 
 		@Bean
-		public JobExplorer jobExplorer(MongoClient mongoClient, MongoTransactionManager transactionManager) throws Exception {
+		public JobExplorer jobExplorer(MongoTemplate mongoTemplate, MongoTransactionManager transactionManager) throws Exception {
 			MongoJobExplorerFactoryBean jobExplorerFactoryBean = new MongoJobExplorerFactoryBean();
-			jobExplorerFactoryBean.setMongoClient(mongoClient);
-			jobExplorerFactoryBean.setDatabaseName(DATABASE_NAME);
+			jobExplorerFactoryBean.setMongoOperations(mongoTemplate);
 			jobExplorerFactoryBean.setTransactionManager(transactionManager);
 			jobExplorerFactoryBean.afterPropertiesSet();
 			return jobExplorerFactoryBean.getObject();
@@ -111,15 +118,17 @@ public class MongoDBJobRepositoryIntegrationTests {
 
 		@Bean
 		public MongoClient mongoClient() {
-			MongoClientFactory mongoClientFactory = new MongoClientFactory();
-			// how to create mongo client?
-			return null;
+			return MongoClients.create(mongodb.getConnectionString());
 		}
 
 		@Bean
 		public MongoDatabaseFactory mongoDatabaseFactory(MongoClient mongoClient) {
 			return new SimpleMongoClientDatabaseFactory(mongoClient, DATABASE_NAME);
+		}
 
+		@Bean
+		public MongoTemplate mongoTemplate(MongoClient mongoClient) {
+			return new MongoTemplate(mongoClient, DATABASE_NAME);
 		}
 
 		@Bean
