@@ -64,27 +64,25 @@ public class MongoDBJobRepositoryIntegrationTests {
 
 	@Autowired
 	private JobLauncher jobLauncher;
+
 	@Autowired
 	private Job job;
 
 	@Autowired
 	private MongoTemplate mongoTemplate;
-	
+
 	@Before
 	public void setUp() {
 		mongoTemplate.createCollection("BATCH_JOB_INSTANCE");
 		mongoTemplate.createCollection("BATCH_JOB_EXECUTION");
-		mongoTemplate.createCollection("BATCH_JOB_EXECUTION_CONTEXT");
-		mongoTemplate.createCollection("BATCH_JOB_EXECUTION_PARAMS");
 		mongoTemplate.createCollection("BATCH_STEP_EXECUTION");
-		mongoTemplate.createCollection("BATCH_STEP_EXECUTION_CONTEXT");
 	}
 
 	@Test
 	public void testJobExecution() throws Exception {
 		// given
 		JobParameters jobParameters = new JobParametersBuilder().toJobParameters();
-		
+
 		// when
 		JobExecution jobExecution = this.jobLauncher.run(this.job, jobParameters);
 
@@ -96,10 +94,12 @@ public class MongoDBJobRepositoryIntegrationTests {
 	@Configuration
 	@EnableBatchProcessing
 	static class TestConfiguration {
+
 		private static final String DATABASE_NAME = "test";
 
 		@Bean
-		public JobRepository jobRepository(MongoTemplate mongoTemplate, MongoTransactionManager transactionManager) throws Exception {
+		public JobRepository jobRepository(MongoTemplate mongoTemplate, MongoTransactionManager transactionManager)
+				throws Exception {
 			MongoJobRepositoryFactoryBean jobRepositoryFactoryBean = new MongoJobRepositoryFactoryBean();
 			jobRepositoryFactoryBean.setMongoOperations(mongoTemplate);
 			jobRepositoryFactoryBean.setTransactionManager(transactionManager);
@@ -108,7 +108,8 @@ public class MongoDBJobRepositoryIntegrationTests {
 		}
 
 		@Bean
-		public JobExplorer jobExplorer(MongoTemplate mongoTemplate, MongoTransactionManager transactionManager) throws Exception {
+		public JobExplorer jobExplorer(MongoTemplate mongoTemplate, MongoTransactionManager transactionManager)
+				throws Exception {
 			MongoJobExplorerFactoryBean jobExplorerFactoryBean = new MongoJobExplorerFactoryBean();
 			jobExplorerFactoryBean.setMongoOperations(mongoTemplate);
 			jobExplorerFactoryBean.setTransactionManager(transactionManager);
@@ -142,11 +143,12 @@ public class MongoDBJobRepositoryIntegrationTests {
 		@Bean
 		public Job job(JobRepository jobRepository, MongoTransactionManager transactionManager) {
 			return new JobBuilder("job", jobRepository)
-					.start(new StepBuilder("step", jobRepository)
-							.tasklet((contribution, chunkContext) -> RepeatStatus.FINISHED, transactionManager)
-							.build())
-					.build();
+				.start(new StepBuilder("step", jobRepository)
+					.tasklet((contribution, chunkContext) -> RepeatStatus.FINISHED, transactionManager)
+					.build())
+				.build();
 		}
 
 	}
+
 }
