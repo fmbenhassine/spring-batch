@@ -40,7 +40,8 @@ public class MongoJobExecutionDao implements JobExecutionDao {
 	public void saveJobExecution(JobExecution jobExecution) {
 		org.springframework.batch.core.repository.persistence.JobExecution jobExecutionToSave = this.jobExecutionConverter
 			.fromJobExecution(jobExecution);
-		this.mongoOperations.save(jobExecutionToSave, JOB_EXECUTIONS_COLLECTION_NAME);
+		org.springframework.batch.core.repository.persistence.JobExecution saved = this.mongoOperations.save(jobExecutionToSave, JOB_EXECUTIONS_COLLECTION_NAME);
+		jobExecution.setId(saved.getId());
 	}
 
 	@Override

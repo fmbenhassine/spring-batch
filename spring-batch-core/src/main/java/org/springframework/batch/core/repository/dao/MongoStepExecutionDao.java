@@ -41,7 +41,8 @@ public class MongoStepExecutionDao implements StepExecutionDao {
 	public void saveStepExecution(StepExecution stepExecution) {
 		org.springframework.batch.core.repository.persistence.StepExecution stepExecutionToSave = this.stepExecutionConverter
 			.fromStepExecution(stepExecution);
-		this.mongoOperations.save(stepExecutionToSave, STEP_EXECUTIONS_COLLECTION_NAME);
+		org.springframework.batch.core.repository.persistence.StepExecution saved = this.mongoOperations.save(stepExecutionToSave, STEP_EXECUTIONS_COLLECTION_NAME);
+		stepExecution.setId(saved.getId());
 	}
 
 	@Override
