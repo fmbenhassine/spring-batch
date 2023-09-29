@@ -15,8 +15,6 @@
  */
 package org.springframework.batch.core.test.repository;
 
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -46,6 +44,7 @@ import org.springframework.data.mongodb.MongoDatabaseFactory;
 import org.springframework.data.mongodb.MongoTransactionManager;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.SimpleMongoClientDatabaseFactory;
+import org.springframework.data.mongodb.core.convert.MappingMongoConverter;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -95,8 +94,6 @@ public class MongoDBJobRepositoryIntegrationTests {
 	@EnableBatchProcessing
 	static class TestConfiguration {
 
-		private static final String DATABASE_NAME = "test";
-
 		@Bean
 		public JobRepository jobRepository(MongoTemplate mongoTemplate, MongoTransactionManager transactionManager)
 				throws Exception {
@@ -118,18 +115,16 @@ public class MongoDBJobRepositoryIntegrationTests {
 		}
 
 		@Bean
-		public MongoClient mongoClient() {
-			return MongoClients.create(mongodb.getConnectionString());
+		public MongoDatabaseFactory mongoDatabaseFactory() {
+			return new SimpleMongoClientDatabaseFactory(mongodb.getConnectionString());
 		}
 
 		@Bean
-		public MongoDatabaseFactory mongoDatabaseFactory(MongoClient mongoClient) {
-			return new SimpleMongoClientDatabaseFactory(mongoClient, DATABASE_NAME);
-		}
-
-		@Bean
-		public MongoTemplate mongoTemplate(MongoClient mongoClient) {
-			return new MongoTemplate(mongoClient, DATABASE_NAME);
+		public MongoTemplate mongoTemplate(MongoDatabaseFactory mongoDatabaseFactory) {
+			MongoTemplate template = new MongoTemplate(mongoDatabaseFactory);
+			MappingMongoConverter converter = (MappingMongoConverter) template.getConverter();
+			converter.setMapKeyDotReplacement(".");
+			return template;
 		}
 
 		@Bean
