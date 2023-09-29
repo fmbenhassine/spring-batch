@@ -39,6 +39,7 @@ public class StepExecutionConverter {
 		if (source.getId() != null) {
 			stepExecution.setId(source.getId());
 		}
+		stepExecution.setName(source.getStepName());
 		stepExecution.setJobExecutionId(source.getJobExecutionId());
 		stepExecution.setStatus(source.getStatus());
 		stepExecution.setReadCount(source.getReadCount());
