@@ -1,6 +1,7 @@
 package org.springframework.batch.core.repository.dao;
 
 import java.util.List;
+import java.util.Random;
 
 import org.springframework.batch.core.DefaultJobKeyGenerator;
 import org.springframework.batch.core.JobExecution;
@@ -41,18 +42,16 @@ public class MongoJobInstanceDao implements JobInstanceDao {
 
 		Assert.state(getJobInstance(jobName, jobParameters) == null, "JobInstance must not already exist");
 
-		JobInstance lastJobInstance = getLastJobInstance(jobName);
-		Long jobInstanceId = lastJobInstance == null ? 1L : lastJobInstance.getId() + 1;
-
-		JobInstance jobInstance = new JobInstance(jobInstanceId, jobName);
-		jobInstance.incrementVersion(); // TODO is this needed?
-
-		org.springframework.batch.core.repository.persistence.JobInstance jobInstanceToSave = this.jobInstanceConverter
-			.fromJobInstance(jobInstance);
+		org.springframework.batch.core.repository.persistence.JobInstance jobInstanceToSave = new org.springframework.batch.core.repository.persistence.JobInstance();
+		jobInstanceToSave.setJobName(jobName);
 		String key = this.jobKeyGenerator.generateKey(jobParameters);
 		jobInstanceToSave.setJobKey(key);
+		long instanceId = new Random().nextLong();
+		jobInstanceToSave.setJobInstanceId(instanceId);
 		this.mongoOperations.insert(jobInstanceToSave, COLLECTION_NAME);
 
+		JobInstance jobInstance = new JobInstance(instanceId, jobName);
+		jobInstance.incrementVersion(); // TODO is this needed?
 		return jobInstance;
 	}
 
@@ -67,8 +66,9 @@ public class MongoJobInstanceDao implements JobInstanceDao {
 
 	@Override
 	public JobInstance getJobInstance(Long instanceId) {
-		org.springframework.batch.core.repository.persistence.JobInstance jobInstance = this.mongoOperations.findById(
-				instanceId, org.springframework.batch.core.repository.persistence.JobInstance.class, COLLECTION_NAME);
+		Query query = query(where("jobInstanceId").is(instanceId));
+		org.springframework.batch.core.repository.persistence.JobInstance jobInstance = this.mongoOperations
+				.findOne(query, org.springframework.batch.core.repository.persistence.JobInstance.class, COLLECTION_NAME);
 		return jobInstance != null ? this.jobInstanceConverter.toJobInstance(jobInstance) : null;
 	}
 
@@ -80,7 +80,7 @@ public class MongoJobInstanceDao implements JobInstanceDao {
 	@Override
 	public List<JobInstance> getJobInstances(String jobName, int start, int count) {
 		Query query = query(where("jobName").is(jobName));
-		Sort.Order sortOrder = Sort.Order.desc("_id");
+		Sort.Order sortOrder = Sort.Order.desc("jobInstanceId");
 		List<org.springframework.batch.core.repository.persistence.JobInstance> jobInstances = this.mongoOperations
 			.find(query.with(Sort.by(sortOrder)),
 					org.springframework.batch.core.repository.persistence.JobInstance.class, COLLECTION_NAME)
@@ -96,7 +96,7 @@ public class MongoJobInstanceDao implements JobInstanceDao {
 	@Override
 	public JobInstance getLastJobInstance(String jobName) {
 		Query query = query(where("jobName").is(jobName));
-		Sort.Order sortOrder = Sort.Order.desc("_id");
+		Sort.Order sortOrder = Sort.Order.desc("jobInstanceId");
 		org.springframework.batch.core.repository.persistence.JobInstance jobInstance = this.mongoOperations.findOne(
 				query.with(Sort.by(sortOrder)), org.springframework.batch.core.repository.persistence.JobInstance.class,
 				COLLECTION_NAME);
@@ -115,7 +115,7 @@ public class MongoJobInstanceDao implements JobInstanceDao {
 	@Override
 	public List<JobInstance> findJobInstancesByName(String jobName, int start, int count) {
 		Query query = query(where("jobName").alike(Example.of(jobName)));
-		Sort.Order sortOrder = Sort.Order.desc("_id");
+		Sort.Order sortOrder = Sort.Order.desc("jobInstanceId");
 		List<org.springframework.batch.core.repository.persistence.JobInstance> jobInstances = this.mongoOperations
 			.find(query.with(Sort.by(sortOrder)),
 					org.springframework.batch.core.repository.persistence.JobInstance.class, COLLECTION_NAME)

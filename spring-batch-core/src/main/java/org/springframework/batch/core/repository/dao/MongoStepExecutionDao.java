@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobInstance;
@@ -41,8 +42,10 @@ public class MongoStepExecutionDao implements StepExecutionDao {
 	public void saveStepExecution(StepExecution stepExecution) {
 		org.springframework.batch.core.repository.persistence.StepExecution stepExecutionToSave = this.stepExecutionConverter
 			.fromStepExecution(stepExecution);
-		org.springframework.batch.core.repository.persistence.StepExecution saved = this.mongoOperations.save(stepExecutionToSave, STEP_EXECUTIONS_COLLECTION_NAME);
-		stepExecution.setId(saved.getId());
+		long stepExecutionId = new Random().nextLong();
+		stepExecutionToSave.setStepExecutionId(stepExecutionId);
+		this.mongoOperations.insert(stepExecutionToSave, STEP_EXECUTIONS_COLLECTION_NAME);
+		stepExecution.setId(stepExecutionId);
 	}
 
 	@Override
@@ -54,10 +57,10 @@ public class MongoStepExecutionDao implements StepExecutionDao {
 
 	@Override
 	public void updateStepExecution(StepExecution stepExecution) {
-		org.springframework.batch.core.repository.persistence.StepExecution stepExecutionToSave = this.stepExecutionConverter
-			.fromStepExecution(stepExecution);
-		;
-		this.mongoOperations.save(stepExecutionToSave, STEP_EXECUTIONS_COLLECTION_NAME);
+		Query query = query(where("stepExecutionId").is(stepExecution.getId()));
+		org.springframework.batch.core.repository.persistence.StepExecution stepExecutionToUpdate = this.stepExecutionConverter
+				.fromStepExecution(stepExecution);
+		this.mongoOperations.findAndReplace(query, stepExecutionToUpdate, STEP_EXECUTIONS_COLLECTION_NAME);
 	}
 
 	@Override
@@ -90,7 +93,7 @@ public class MongoStepExecutionDao implements StepExecutionDao {
 		if (lastStepExecution.isPresent()) {
 			org.springframework.batch.core.repository.persistence.StepExecution stepExecution = lastStepExecution.get();
 			JobExecution jobExecution = this.jobExecutionConverter.toJobExecution(jobExecutions.stream()
-				.filter(execution -> execution.getId() == stepExecution.getJobExecutionId())
+				.filter(execution -> execution.getJobExecutionId().equals(stepExecution.getJobExecutionId()))
 				.findFirst()
 				.get(), jobInstance);
 			return this.stepExecutionConverter.toStepExecution(stepExecution, jobExecution);

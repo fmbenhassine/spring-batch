@@ -21,7 +21,7 @@ public class JobExecutionConverter {
 		source.getJobParameters()
 			.forEach((key, value) -> parameterMap.put(key, this.jobParameterConverter.toJobParameter(value)));
 		org.springframework.batch.core.JobExecution jobExecution = new org.springframework.batch.core.JobExecution(
-				jobInstance, source.getId(), new JobParameters(parameterMap));
+				jobInstance, source.getJobExecutionId(), new JobParameters(parameterMap));
 		jobExecution.addStepExecutions(source.getStepExecutions()
 			.stream()
 			.map(stepExecution -> this.stepExecutionConverter.toStepExecution(stepExecution, jobExecution))
@@ -40,9 +40,7 @@ public class JobExecutionConverter {
 
 	public JobExecution fromJobExecution(org.springframework.batch.core.JobExecution source) {
 		JobExecution jobExecution = new JobExecution();
-		if (source.getId() != null) {
-			jobExecution.setId(source.getId());
-		}
+		jobExecution.setJobExecutionId(source.getId());
 		jobExecution.setJobInstanceId(source.getJobInstance().getInstanceId());
 		Map<String, JobParameter<?>> parameterMap = new HashMap<>();
 		source.getJobParameters()

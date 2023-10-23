@@ -6,9 +6,11 @@ import org.springframework.batch.core.BatchStatus;
 
 public class StepExecution {
 
-	private long id;
+	private String id;
 
-	private long jobExecutionId;
+	private Long stepExecutionId;
+
+	private Long jobExecutionId;
 
 	private String name;
 
@@ -47,45 +49,23 @@ public class StepExecution {
 	public StepExecution() {
 	}
 
-	public StepExecution(long id, long jobExecutionId, String name, BatchStatus status, long readCount, long writeCount,
-			long commitCount, long rollbackCount, long readSkipCount, long processSkipCount, long writeSkipCount,
-			long filterCount, LocalDateTime startTime, LocalDateTime createTime, LocalDateTime endTime,
-			LocalDateTime lastUpdated, ExecutionContext executionContext, ExitStatus exitStatus,
-			boolean terminateOnly) {
-		this.id = id;
-		this.jobExecutionId = jobExecutionId;
-		this.name = name;
-		this.status = status;
-		this.readCount = readCount;
-		this.writeCount = writeCount;
-		this.commitCount = commitCount;
-		this.rollbackCount = rollbackCount;
-		this.readSkipCount = readSkipCount;
-		this.processSkipCount = processSkipCount;
-		this.writeSkipCount = writeSkipCount;
-		this.filterCount = filterCount;
-		this.startTime = startTime;
-		this.createTime = createTime;
-		this.endTime = endTime;
-		this.lastUpdated = lastUpdated;
-		this.executionContext = executionContext;
-		this.exitStatus = exitStatus;
-		this.terminateOnly = terminateOnly;
-	}
-
-	public long getId() {
+	public String getId() {
 		return id;
 	}
 
-	public void setId(long id) {
-		this.id = id;
+	public Long getStepExecutionId() {
+		return stepExecutionId;
 	}
 
-	public long getJobExecutionId() {
+	public void setStepExecutionId(Long stepExecutionId) {
+		this.stepExecutionId = stepExecutionId;
+	}
+
+	public Long getJobExecutionId() {
 		return jobExecutionId;
 	}
 
-	public void setJobExecutionId(long jobExecutionId) {
+	public void setJobExecutionId(Long jobExecutionId) {
 		this.jobExecutionId = jobExecutionId;
 	}
 
@@ -225,4 +205,29 @@ public class StepExecution {
 		this.terminateOnly = terminateOnly;
 	}
 
+	@Override
+	public String toString() {
+		return "StepExecution{" +
+				"id='" + id + '\'' +
+				", stepExecutionId=" + stepExecutionId +
+				", jobExecutionId='" + jobExecutionId + '\'' +
+				", name='" + name + '\'' +
+				", status=" + status +
+				", readCount=" + readCount +
+				", writeCount=" + writeCount +
+				", commitCount=" + commitCount +
+				", rollbackCount=" + rollbackCount +
+				", readSkipCount=" + readSkipCount +
+				", processSkipCount=" + processSkipCount +
+				", writeSkipCount=" + writeSkipCount +
+				", filterCount=" + filterCount +
+				", startTime=" + startTime +
+				", createTime=" + createTime +
+				", endTime=" + endTime +
+				", lastUpdated=" + lastUpdated +
+				", executionContext=" + executionContext +
+				", exitStatus=" + exitStatus +
+				", terminateOnly=" + terminateOnly +
+				'}';
+	}
 }

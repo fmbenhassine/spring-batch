@@ -2,7 +2,9 @@ package org.springframework.batch.core.repository.persistence;
 
 public class JobInstance {
 
-	private long id;
+	private String id;
+
+	private Long jobInstanceId;
 
 	private String jobName;
 
@@ -11,18 +13,16 @@ public class JobInstance {
 	public JobInstance() {
 	}
 
-	public JobInstance(long id, String jobName, String jobKey) {
-		this.id = id;
-		this.jobName = jobName;
-		this.jobKey = jobKey;
-	}
-
-	public long getId() {
+	public String getId() {
 		return id;
 	}
 
-	public void setId(long id) {
-		this.id = id;
+	public Long getJobInstanceId() {
+		return jobInstanceId;
+	}
+
+	public void setJobInstanceId(Long jobInstanceId) {
+		this.jobInstanceId = jobInstanceId;
 	}
 
 	public String getJobName() {
@@ -41,4 +41,13 @@ public class JobInstance {
 		this.jobKey = jobKey;
 	}
 
+	@Override
+	public String toString() {
+		return "JobInstance{" +
+				"id='" + id + '\'' +
+				", jobInstanceId=" + jobInstanceId +
+				", jobName='" + jobName + '\'' +
+				", jobKey='" + jobKey + '\'' +
+				'}';
+	}
 }

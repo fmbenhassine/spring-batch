@@ -10,9 +10,11 @@ import org.springframework.batch.core.BatchStatus;
 
 public class JobExecution {
 
-	private long id;
+	private String id;
 
-	private long jobInstanceId;
+	private Long jobExecutionId;
+
+	private Long jobInstanceId;
 
 	private Map<String, JobParameter<?>> jobParameters = new HashMap<>();
 
@@ -35,37 +37,24 @@ public class JobExecution {
 	public JobExecution() {
 	}
 
-	public JobExecution(long id, long jobInstanceId, Map<String, JobParameter<?>> jobParameters,
-			List<StepExecution> stepExecutions, BatchStatus status, LocalDateTime startTime, LocalDateTime createTime,
-			LocalDateTime endTime, LocalDateTime lastUpdated, ExitStatus exitStatus,
-			ExecutionContext executionContext) {
-		this.id = id;
-		this.jobInstanceId = jobInstanceId;
-		this.jobParameters = jobParameters;
-		this.stepExecutions = stepExecutions;
-		this.status = status;
-		this.startTime = startTime;
-		this.createTime = createTime;
-		this.endTime = endTime;
-		this.lastUpdated = lastUpdated;
-		this.exitStatus = exitStatus;
-		this.executionContext = executionContext;
-	}
-
-	public long getId() {
+	public String getId() {
 		return id;
 	}
 
-	public void setId(long id) {
-		this.id = id;
-	}
-
-	public long getJobInstanceId() {
+	public Long getJobInstanceId() {
 		return jobInstanceId;
 	}
 
-	public void setJobInstanceId(long jobInstanceId) {
+	public void setJobInstanceId(Long jobInstanceId) {
 		this.jobInstanceId = jobInstanceId;
+	}
+
+	public Long getJobExecutionId() {
+		return jobExecutionId;
+	}
+
+	public void setJobExecutionId(Long jobExecutionId) {
+		this.jobExecutionId = jobExecutionId;
 	}
 
 	public Map<String, JobParameter<?>> getJobParameters() {
@@ -140,4 +129,21 @@ public class JobExecution {
 		this.executionContext = executionContext;
 	}
 
+	@Override
+	public String toString() {
+		return "JobExecution{" +
+				"id='" + id + '\'' +
+				", jobExecutionId=" + jobExecutionId +
+				", jobInstanceId=" + jobInstanceId +
+				", jobParameters=" + jobParameters +
+				", stepExecutions=" + stepExecutions +
+				", status=" + status +
+				", startTime=" + startTime +
+				", createTime=" + createTime +
+				", endTime=" + endTime +
+				", lastUpdated=" + lastUpdated +
+				", exitStatus=" + exitStatus +
+				", executionContext=" + executionContext +
+				'}';
+	}
 }

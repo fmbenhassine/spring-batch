@@ -2,6 +2,7 @@ package org.springframework.batch.core.repository.dao;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 
 import org.springframework.batch.core.JobExecution;
@@ -40,13 +41,18 @@ public class MongoJobExecutionDao implements JobExecutionDao {
 	public void saveJobExecution(JobExecution jobExecution) {
 		org.springframework.batch.core.repository.persistence.JobExecution jobExecutionToSave = this.jobExecutionConverter
 			.fromJobExecution(jobExecution);
-		org.springframework.batch.core.repository.persistence.JobExecution saved = this.mongoOperations.save(jobExecutionToSave, JOB_EXECUTIONS_COLLECTION_NAME);
-		jobExecution.setId(saved.getId());
+		long jobExecutionId = new Random().nextLong();
+		jobExecutionToSave.setJobExecutionId(jobExecutionId);
+		this.mongoOperations.insert(jobExecutionToSave, JOB_EXECUTIONS_COLLECTION_NAME);
+		jobExecution.setId(jobExecutionId);
 	}
 
 	@Override
 	public void updateJobExecution(JobExecution jobExecution) {
-		saveJobExecution(jobExecution);
+		Query query = query(where("jobExecutionId").is(jobExecution.getId()));
+		org.springframework.batch.core.repository.persistence.JobExecution jobExecutionToUpdate = this.jobExecutionConverter
+				.fromJobExecution(jobExecution);
+		this.mongoOperations.findAndReplace(query, jobExecutionToUpdate, JOB_EXECUTIONS_COLLECTION_NAME);
 	}
 
 	@Override
@@ -63,7 +69,7 @@ public class MongoJobExecutionDao implements JobExecutionDao {
 	@Override
 	public JobExecution getLastJobExecution(JobInstance jobInstance) {
 		Query query = query(where("jobInstanceId").is(jobInstance.getId()));
-		Sort.Order sortOrder = Sort.Order.desc("_id");
+		Sort.Order sortOrder = Sort.Order.desc("jobExecutionId");
 		org.springframework.batch.core.repository.persistence.JobExecution jobExecution = this.mongoOperations.findOne(
 				query.with(Sort.by(sortOrder)),
 				org.springframework.batch.core.repository.persistence.JobExecution.class,
@@ -111,7 +117,7 @@ public class MongoJobExecutionDao implements JobExecutionDao {
 
 	@Override
 	public void synchronizeStatus(JobExecution jobExecution) {
-		Query query = query(where("_id").is(jobExecution.getId()));
+		Query query = query(where("jobExecutionId").is(jobExecution.getId()));
 		Update update = Update.update("status", jobExecution.getStatus());
 		// TODO the contract mentions to update the version as well. Double check if this
 		// is needed as the version is not used in the tests following the call sites of
