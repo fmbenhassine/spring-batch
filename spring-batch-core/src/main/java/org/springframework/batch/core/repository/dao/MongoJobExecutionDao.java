@@ -2,7 +2,6 @@ package org.springframework.batch.core.repository.dao;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Random;
 import java.util.Set;
 
 import org.springframework.batch.core.JobExecution;
@@ -13,21 +12,21 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.jdbc.support.incrementer.DataFieldMaxValueIncrementer;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 import static org.springframework.data.mongodb.core.query.Query.query;
 
 public class MongoJobExecutionDao implements JobExecutionDao {
 
-	private static final String JOB_EXECUTIONS_COLLECTION_NAME = "BATCH_JOB_EXECUTION"; // TODO
-																						// make
-																						// configurable
+	private static final String JOB_EXECUTIONS_COLLECTION_NAME = "BATCH_JOB_EXECUTION";
+	private static final String JOB_EXECUTIONS_SEQUENCE_NAME = "BATCH_JOB_EXECUTION_SEQ";
 
-	private static final String JOB_INSTANCES_COLLECTION_NAME = "BATCH_JOB_INSTANCE"; // TODO
-																						// make
-																						// configurable
+	private static final String JOB_INSTANCES_COLLECTION_NAME = "BATCH_JOB_INSTANCE";
 
 	private final MongoOperations mongoOperations;
+
+	private DataFieldMaxValueIncrementer jobExecutionIncrementer;
 
 	private final JobExecutionConverter jobExecutionConverter = new JobExecutionConverter();
 
@@ -35,13 +34,18 @@ public class MongoJobExecutionDao implements JobExecutionDao {
 
 	public MongoJobExecutionDao(MongoOperations mongoOperations) {
 		this.mongoOperations = mongoOperations;
+		this.jobExecutionIncrementer = new MongoSequenceIncrementer(mongoOperations, JOB_EXECUTIONS_SEQUENCE_NAME);
+	}
+
+	public void setJobExecutionIncrementer(DataFieldMaxValueIncrementer jobExecutionIncrementer) {
+		this.jobExecutionIncrementer = jobExecutionIncrementer;
 	}
 
 	@Override
 	public void saveJobExecution(JobExecution jobExecution) {
 		org.springframework.batch.core.repository.persistence.JobExecution jobExecutionToSave = this.jobExecutionConverter
 			.fromJobExecution(jobExecution);
-		long jobExecutionId = new Random().nextLong();
+		long jobExecutionId = this.jobExecutionIncrementer.nextLongValue();
 		jobExecutionToSave.setJobExecutionId(jobExecutionId);
 		this.mongoOperations.insert(jobExecutionToSave, JOB_EXECUTIONS_COLLECTION_NAME);
 		jobExecution.setId(jobExecutionId);

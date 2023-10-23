@@ -15,6 +15,11 @@
  */
 package org.springframework.batch.core.test.repository;
 
+import java.time.LocalDateTime;
+
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import org.bson.Document;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -75,12 +80,21 @@ public class MongoDBJobRepositoryIntegrationTests {
 		mongoTemplate.createCollection("BATCH_JOB_INSTANCE");
 		mongoTemplate.createCollection("BATCH_JOB_EXECUTION");
 		mongoTemplate.createCollection("BATCH_STEP_EXECUTION");
+		mongoTemplate.createCollection("BATCH_JOB_INSTANCE_SEQ");
+		mongoTemplate.createCollection("BATCH_JOB_EXECUTION_SEQ");
+		mongoTemplate.createCollection("BATCH_STEP_EXECUTION_SEQ");
+		mongoTemplate.getCollection("BATCH_JOB_INSTANCE_SEQ").insertOne(new Document("count", 0));
+		mongoTemplate.getCollection("BATCH_JOB_EXECUTION_SEQ").insertOne(new Document("count", 0));
+		mongoTemplate.getCollection("BATCH_STEP_EXECUTION_SEQ").insertOne(new Document("count", 0));
 	}
 
 	@Test
 	public void testJobExecution() throws Exception {
 		// given
-		JobParameters jobParameters = new JobParametersBuilder().toJobParameters();
+		JobParameters jobParameters = new JobParametersBuilder()
+				.addString("name", "foo")
+				.addLocalDateTime("runtime", LocalDateTime.now())
+				.toJobParameters();
 
 		// when
 		JobExecution jobExecution = this.jobLauncher.run(this.job, jobParameters);
@@ -116,7 +130,8 @@ public class MongoDBJobRepositoryIntegrationTests {
 
 		@Bean
 		public MongoDatabaseFactory mongoDatabaseFactory() {
-			return new SimpleMongoClientDatabaseFactory(mongodb.getConnectionString());
+			MongoClient mongoClient = MongoClients.create(mongodb.getConnectionString());
+			return new SimpleMongoClientDatabaseFactory(mongoClient, "test");
 		}
 
 		@Bean

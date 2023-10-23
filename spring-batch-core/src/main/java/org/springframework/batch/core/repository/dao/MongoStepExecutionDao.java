@@ -5,7 +5,6 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import java.util.Random;
 
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobInstance;
@@ -14,19 +13,17 @@ import org.springframework.batch.core.repository.persistence.converter.JobExecut
 import org.springframework.batch.core.repository.persistence.converter.StepExecutionConverter;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.jdbc.support.incrementer.DataFieldMaxValueIncrementer;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 import static org.springframework.data.mongodb.core.query.Query.query;
 
 public class MongoStepExecutionDao implements StepExecutionDao {
 
-	private static final String STEP_EXECUTIONS_COLLECTION_NAME = "BATCH_STEP_EXECUTION"; // TODO
-																							// make
-																							// configurable
+	private static final String STEP_EXECUTIONS_COLLECTION_NAME = "BATCH_STEP_EXECUTION";
+	private static final String STEP_EXECUTIONS_SEQUENCE_NAME = "BATCH_STEP_EXECUTION_SEQ";
 
-	private static final String JOB_EXECUTIONS_COLLECTION_NAME = "BATCH_JOB_EXECUTION"; // TODO
-																						// make
-																						// configurable
+	private static final String JOB_EXECUTIONS_COLLECTION_NAME = "BATCH_JOB_EXECUTION";
 
 	private final StepExecutionConverter stepExecutionConverter = new StepExecutionConverter();
 
@@ -34,15 +31,22 @@ public class MongoStepExecutionDao implements StepExecutionDao {
 
 	private final MongoOperations mongoOperations;
 
+	private DataFieldMaxValueIncrementer stepExecutionIncrementer;
+
 	public MongoStepExecutionDao(MongoOperations mongoOperations) {
 		this.mongoOperations = mongoOperations;
+		this.stepExecutionIncrementer = new MongoSequenceIncrementer(mongoOperations, STEP_EXECUTIONS_SEQUENCE_NAME);
+	}
+
+	public void setStepExecutionIncrementer(DataFieldMaxValueIncrementer stepExecutionIncrementer) {
+		this.stepExecutionIncrementer = stepExecutionIncrementer;
 	}
 
 	@Override
 	public void saveStepExecution(StepExecution stepExecution) {
 		org.springframework.batch.core.repository.persistence.StepExecution stepExecutionToSave = this.stepExecutionConverter
 			.fromStepExecution(stepExecution);
-		long stepExecutionId = new Random().nextLong();
+		long stepExecutionId = this.stepExecutionIncrementer.nextLongValue();
 		stepExecutionToSave.setStepExecutionId(stepExecutionId);
 		this.mongoOperations.insert(stepExecutionToSave, STEP_EXECUTIONS_COLLECTION_NAME);
 		stepExecution.setId(stepExecutionId);

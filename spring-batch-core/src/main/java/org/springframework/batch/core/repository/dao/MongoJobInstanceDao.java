@@ -1,7 +1,6 @@
 package org.springframework.batch.core.repository.dao;
 
 import java.util.List;
-import java.util.Random;
 
 import org.springframework.batch.core.DefaultJobKeyGenerator;
 import org.springframework.batch.core.JobExecution;
@@ -14,6 +13,7 @@ import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.jdbc.support.incrementer.DataFieldMaxValueIncrementer;
 import org.springframework.util.Assert;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
@@ -21,18 +21,24 @@ import static org.springframework.data.mongodb.core.query.Query.query;
 
 public class MongoJobInstanceDao implements JobInstanceDao {
 
-	private static final String COLLECTION_NAME = "BATCH_JOB_INSTANCE"; // TODO make
-																		// configurable
+	private static final String COLLECTION_NAME = "BATCH_JOB_INSTANCE";
+	private static final String SEQUENCE_NAME = "BATCH_JOB_INSTANCE_SEQ";
 
 	private final MongoOperations mongoOperations;
 
 	private JobKeyGenerator<JobParameters> jobKeyGenerator = new DefaultJobKeyGenerator();
+	private DataFieldMaxValueIncrementer jobInstanceIncrementer;
 
 	private final JobInstanceConverter jobInstanceConverter = new JobInstanceConverter();
 
 	public MongoJobInstanceDao(MongoOperations mongoOperations) {
 		Assert.notNull(mongoOperations, "mongoOperations must not be null.");
 		this.mongoOperations = mongoOperations;
+		this.jobInstanceIncrementer = new MongoSequenceIncrementer(mongoOperations, SEQUENCE_NAME);
+	}
+
+	public void setJobInstanceIncrementer(DataFieldMaxValueIncrementer jobInstanceIncrementer) {
+		this.jobInstanceIncrementer = jobInstanceIncrementer;
 	}
 
 	@Override
@@ -46,7 +52,7 @@ public class MongoJobInstanceDao implements JobInstanceDao {
 		jobInstanceToSave.setJobName(jobName);
 		String key = this.jobKeyGenerator.generateKey(jobParameters);
 		jobInstanceToSave.setJobKey(key);
-		long instanceId = new Random().nextLong();
+		long instanceId = jobInstanceIncrementer.nextLongValue();
 		jobInstanceToSave.setJobInstanceId(instanceId);
 		this.mongoOperations.insert(jobInstanceToSave, COLLECTION_NAME);
 
